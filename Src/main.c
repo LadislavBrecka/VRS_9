@@ -24,11 +24,26 @@
 #include "gpio.h"
 #include "lis3mdltr.h"
 #include "lsm6ds0.h"
-
-uint8_t temp = 0;
-float mag[3], acc[3];
+#include "tim.h"
+#include "display.h"
+#include <string.h>
 
 void SystemClock_Config(void);
+
+uint8_t removeChar(char *str, char garbage);
+void displayMessage(uint8_t option, float value);
+
+#define N_VAL 7
+#define N_TXT 5
+
+uint8_t i = 0;
+uint8_t state = 1;
+
+char dText[N_TXT];
+char dValue[N_VAL];
+char dResult[N_TXT + N_VAL];
+
+float mag[3], acc[3];
 
 
 int main(void)
@@ -40,18 +55,104 @@ int main(void)
 
   SystemClock_Config();
 
-  MX_GPIO_Init();
   MX_I2C1_Init();
-
   lsm6ds0_init();
+
+  MX_GPIO_Init();
+
+  setSegments();
+  setDigits();
+
+  LL_mDelay(2000);
+
+  resetDigits();
+  resetSegments();
+
+  MX_TIM3_Init();
 
   while (1)
   {
-	  //os			   x      y        z
-	  lsm6ds0_get_acc(acc, (acc+1), (acc+2));
-	  LL_mDelay(50);
+
+		lsm6ds0_get_acc(acc, (acc+1), (acc+2));
+		displayMessage(state,acc[0]);
+		LL_mDelay(500);
   }
 }
+
+void displayMessage(uint8_t option, float value)
+{
+	uint8_t prec = 0;
+	switch(option)
+	{
+		case 1:
+			strcpy(dText, "ACC_");
+			prec = 4;
+			break;
+		case 2:
+			strcpy(dText, "TEMP_");
+			prec = 5;
+			break;
+		case 3:
+			strcpy(dText, "HUM_");
+			prec = 2;
+			break;
+	}
+	if (value < 0)
+		gcvt(value, prec+1, dValue);
+	else
+		gcvt(value, prec, dValue);
+
+	snprintf(dResult, sizeof(dResult), "%s%s", dText, dValue);
+	uint8_t dot_pos = removeChar(dResult, '.');
+	dot_pos = 4-dot_pos+i;
+
+	char char1,char2,char3,char4;
+
+	char1 = dResult[i];
+	char2 = dResult[i+1];
+	char3 = dResult[i+2];
+	char4 = dResult[i+3];
+
+	if (dResult[i] == '\0') {
+	  char1 = ' ';
+	  char2 = ' ';
+	  char3 = ' ';
+	  char4 = ' ';
+	} else if (dResult[i+1] == '\0') {
+	  char2 = ' ';
+	  char3 = ' ';
+	  char4 = ' ';
+	} else if (dResult[i+2] == '\0') {
+	  char3 = ' ';
+	  char4 = ' ';
+	} else if (dResult[i+3] == '\0') {
+	  char4 = ' ';
+	}
+
+	displayString(char1, char2, char3, char4, dot_pos);
+
+	if (dResult[i] == '\0')
+	  i = 0;
+	else
+	  i += 1;
+}
+
+uint8_t removeChar(char *str, char garbage)
+{
+	uint8_t ans_pos = 0;
+    char *src, *dst;
+    for (src = dst = str; *src != '\0'; src++) {
+        *dst = *src;
+        if (*dst != garbage) {
+        	dst++;
+        } else {
+        	ans_pos = dst - str;
+        }
+    }
+    *dst = '\0';
+    return ans_pos;
+}
+
 
 /**
   * @brief System Clock Configuration
@@ -85,8 +186,8 @@ void SystemClock_Config(void)
   }
   LL_Init1msTick(8000000);
   LL_SYSTICK_SetClkSource(LL_SYSTICK_CLKSOURCE_HCLK);
+  LL_SYSTICK_EnableIT();
   LL_SetSystemCoreClock(8000000);
-  LL_RCC_SetI2CClockSource(LL_RCC_I2C1_CLKSOURCE_HSI);
 }
 
 
