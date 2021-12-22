@@ -26,25 +26,22 @@
 #include "lsm6ds0.h"
 #include "tim.h"
 #include "display.h"
+#include "hts221.h"
+#include "lps25hb.h"
 #include <string.h>
+#include <math.h>
 
 void SystemClock_Config(void);
 
-uint8_t removeChar(char *str, char garbage);
-void displayMessage(uint8_t option, float value);
-
 #define N_VAL 7
-#define N_TXT 5
-
-uint8_t i = 0;
-uint8_t state = 1;
+#define N_TXT 6
 
 char dText[N_TXT];
 char dValue[N_VAL];
 char dResult[N_TXT + N_VAL];
 
-float mag[3], acc[3];
-
+uint8_t i = 0;
+uint8_t state = 1;
 
 int main(void)
 {
@@ -57,14 +54,14 @@ int main(void)
 
   MX_I2C1_Init();
   lsm6ds0_init();
+  hts221_init();
+  lps25hb_init();
 
   MX_GPIO_Init();
 
   setSegments();
   setDigits();
-
   LL_mDelay(2000);
-
   resetDigits();
   resetSegments();
 
@@ -72,31 +69,58 @@ int main(void)
 
   while (1)
   {
+	  	if (!(LL_GPIO_IsInputPinSet(GPIOB, LL_GPIO_PIN_3)))
+	  	{
+	  		state++;
+	  		if (state > 5)
+	  			state = 1;
+	  	}
+	  	float messurement;
+	  	uint8_t prec;
 
-		lsm6ds0_get_acc(acc, (acc+1), (acc+2));
-		displayMessage(state,acc[0]);
+	  	getData(&messurement, &prec);
+		displayMessage(messurement, prec);
 		LL_mDelay(500);
   }
 }
 
-void displayMessage(uint8_t option, float value)
+void getData(float *value, uint8_t *prec)
 {
-	uint8_t prec = 0;
-	switch(option)
-	{
+	switch(state) {
 		case 1:
 			strcpy(dText, "ACC_");
-			prec = 4;
+			*prec = 4;
+			float acc[3];
+			lsm6ds0_get_acc(acc, (acc+1), (acc+2));
+			*value = acc[2];
 			break;
 		case 2:
 			strcpy(dText, "TEMP_");
-			prec = 5;
+			*prec = 5;
+			*value =  hts221_get_temp()/10.0;
 			break;
 		case 3:
 			strcpy(dText, "HUM_");
-			prec = 2;
+			*prec = 2;
+			*value =  hts221_get_hum()/10.0;
+			break;
+		case 4:
+			strcpy(dText, "BAR_");
+			*prec = 5;
+			*value =  lps25hb_get_bar()/10.0;
+			break;
+		case 5:
+			strcpy(dText, "ALT_");
+			*prec = 5;
+			float baro = lps25hb_get_bar()/10.0;
+			*value =  compute_alt(baro)/10.0;
 			break;
 	}
+}
+
+void displayMessage(float value, uint8_t prec)
+{
+
 	if (value < 0)
 		gcvt(value, prec+1, dValue);
 	else
@@ -151,6 +175,12 @@ uint8_t removeChar(char *str, char garbage)
     }
     *dst = '\0';
     return ans_pos;
+}
+
+int16_t compute_alt(float baro)
+{
+	double alt = ((1 - pow((baro/1013.25), 0.190284))*145366.45) * 0.3048;
+	return (int16_t)(alt*10);
 }
 
 
