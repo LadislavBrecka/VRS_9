@@ -40,8 +40,8 @@ char dText[N_TXT];
 char dValue[N_VAL];
 char dResult[N_TXT + N_VAL];
 
-uint8_t i = 0;
-uint8_t state = 1;
+extern uint8_t i = 0;
+extern uint8_t state = 1;
 
 int main(void)
 {
@@ -69,12 +69,7 @@ int main(void)
 
   while (1)
   {
-	  	if (!(LL_GPIO_IsInputPinSet(GPIOB, LL_GPIO_PIN_3)))
-	  	{
-	  		state++;
-	  		if (state > 5)
-	  			state = 1;
-	  	}
+
 	  	float messurement;
 	  	uint8_t prec;
 
@@ -106,12 +101,12 @@ void getData(float *value, uint8_t *prec)
 			break;
 		case 4:
 			strcpy(dText, "BAR_");
-			*prec = 5;
+			*prec = 6;
 			*value =  lps25hb_get_bar()/10.0;
 			break;
 		case 5:
 			strcpy(dText, "ALT_");
-			*prec = 5;
+			*prec = 6;
 			float baro = lps25hb_get_bar()/10.0;
 			*value =  compute_alt(baro)/10.0;
 			break;
@@ -182,6 +177,39 @@ int16_t compute_alt(float baro)
 	double alt = ((1 - pow((baro/1013.25), 0.190284))*145366.45) * 0.3048;
 	return (int16_t)(alt*10);
 }
+
+uint8_t check_button_state(GPIO_TypeDef* PORT, uint8_t PIN)
+{
+	uint8_t button_state = 0, timeout = 0;
+
+	while(button_state < 20 && timeout < 50)
+	{
+		if(!(PORT->IDR & (1 << PIN))/*LL_GPIO_IsInputPinSet(PORT, PIN)*/)
+		{
+			button_state += 1;
+		}
+		else
+		{
+			button_state = 0;
+		}
+
+		timeout += 1;
+		LL_mDelay(1);
+	}
+
+	if((button_state >= 20) && (timeout <= 50))
+	{
+		return 1;
+	}
+	else
+	{
+		return 0;
+	}
+}
+
+
+
+
 
 
 /**

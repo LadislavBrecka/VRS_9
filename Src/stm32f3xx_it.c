@@ -28,6 +28,8 @@
 /* Private typedef -----------------------------------------------------------*/
 /* USER CODE BEGIN TD */
 extern uint64_t disp_time;
+extern uint8_t state;
+extern uint8_t i;
 /* USER CODE END TD */
 
 /* Private define ------------------------------------------------------------*/
@@ -198,10 +200,19 @@ void SysTick_Handler(void)
 /******************************************************************************/
 
 /**
-  * @brief This function handles I2C1 event global interrupt / I2C1 wake-up interrupt through EXT line 23.
+  * @brief This function handles EXTI line 3 interrupt.
   */
-
-
+void EXTI3_IRQHandler(void)
+{
+	if (check_button_state(GPIOB, 3))
+	{
+		state++;
+		i = 0;
+		if (state > 5)
+			state = 1;
+	}
+    LL_EXTI_ClearFlag_0_31(LL_EXTI_LINE_3);
+}
 /* USER CODE BEGIN 1 */
 
 /* USER CODE END 1 */

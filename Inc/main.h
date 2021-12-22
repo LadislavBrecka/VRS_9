@@ -47,15 +47,16 @@ extern "C" {
 
 /* Private includes ----------------------------------------------------------*/
 /* USER CODE BEGIN Includes */
+
 uint8_t removeChar(char *str, char garbage);
 void displayMessage(float value, uint8_t prec);
 int16_t compute_alt(float baro);
 void getData(float *value, uint8_t *prec);
+
 /* USER CODE END Includes */
 
 /* Exported types ------------------------------------------------------------*/
 /* USER CODE BEGIN ET */
-
 /* USER CODE END ET */
 
 /* Exported constants --------------------------------------------------------*/
