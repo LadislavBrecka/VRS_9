@@ -33,7 +33,7 @@
 
 void SystemClock_Config(void);
 
-#define N_VAL 7
+#define N_VAL 8
 #define N_TXT 6
 
 char dText[N_TXT];
@@ -83,28 +83,25 @@ void getData(float *value, uint8_t *prec)
 {
 	switch(state) {
 		case 1:
-			strcpy(dText, "ACC_");
+			strcpy(dText, "TEMP_");
 			*prec = 4;
-			float acc[3];
-			lsm6ds0_get_acc(acc, (acc+1), (acc+2));
-			*value = acc[2];
+			*value =  hts221_get_temp()/10.0;
+			if (*value > 99.9)
+				*value = 99.9;
+			if (*value < -99.9)
+				*value = -99.9;
 			break;
 		case 2:
-			strcpy(dText, "TEMP_");
-			*prec = 5;
-			*value =  hts221_get_temp()/10.0;
-			break;
-		case 3:
 			strcpy(dText, "HUM_");
 			*prec = 2;
 			*value =  hts221_get_hum()/10.0;
 			break;
-		case 4:
+		case 3:
 			strcpy(dText, "BAR_");
-			*prec = 6;
+			*prec = 7;
 			*value =  lps25hb_get_bar()/10.0;
 			break;
-		case 5:
+		case 4:
 			strcpy(dText, "ALT_");
 			*prec = 6;
 			float baro = lps25hb_get_bar()/10.0;

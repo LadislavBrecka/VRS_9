@@ -208,7 +208,7 @@ void EXTI3_IRQHandler(void)
 	{
 		state++;
 		i = 0;
-		if (state > 5)
+		if (state > 4)
 			state = 1;
 	}
     LL_EXTI_ClearFlag_0_31(LL_EXTI_LINE_3);
